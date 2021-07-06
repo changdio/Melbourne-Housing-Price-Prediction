@@ -1,0 +1,63 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggplot2)
+library(psych)
+```
+```{r include = FALSE}
+df <- read.csv("melb_data.csv")
+
+# Location vs. features influence
+df <- df %>% filter(Suburb == "Brunswick"|Suburb == "Carlton"|
+                      Suburb == "South Yarra" | Suburb == "Fitzroy")
+# units only
+
+df <- df %>% filter(Type == "u")
+
+# Omit na
+df <- df[!is.na(df$BuildingArea),]
+df <- df[!is.na(df$Car),]
+
+# Budget for home 1.2 mil.
+df <- df %>% filter(Price <=1200000)
+p1 <- ggplot(df, aes(Price)) + geom_histogram(bins = 20,color="black")
+
+df <- df %>% filter(BuildingArea < 150 & BuildingArea > 31)
+
+price.log.histogram <- df %>% 
+  mutate(price.log = log(Price)) %>% 
+  ggplot(aes(x=price.log)) + theme(legend.position = "none") +
+  geom_histogram(colour = "black", fill = "red",aes(y=..density..), bins = 30) 
+
+df$price.log <- log(df$Price)
+
+p2 <- price.log.histogram
+
+df$Suburb <- factor(df$Suburb, levels=c("Brunswick","Carlton","South Yarra","Fitzroy"))
+
+brunswick.fitzroy <- c(1,0,0,0)
+carlton.fitzroy <- c(0,1,0,0)
+southyarra.fitzroy <- c(0,0,1,0)
+contrasts(df$Suburb) <- cbind(brunswick.fitzroy,carlton.fitzroy,southyarra.fitzroy)
+
+model <- lm(price.log ~ Suburb + Car + BuildingArea, data=df)
+
+df$standardized.residuals <- rstandard(model)
+
+```
+
+
+**Individual Assignment 4, Dion Chang - 20812576**
+
+**1) Problem statement and data used:** The objectives with the Melbourne housing data set were to determine the important factors that determine house price as well as create and compare two multiple linear regression models that predict house price. Specifically, there is a budget of 1.2 million dollars and the suburbs of interest were Brunswick, Carlton, South Yarra, and Fitzroy. The filtered building size was greater than 31 m^2^ to less than 150 m^2^. The type of residential of interest was unit.
+
+**2) Planning:** Filters were applied as per the conditions listed in **1)**. Missing values in building area and car spaces have also been removed. After going through with the data filtering and cleansing, the dataframe would have 97 observations. This dataframe would then be used to create two different models (models 1 and 2). In model 1, the influence of the suburb, number of car spots, and building area size have on unit prices. In model 2, more variables were added to analyze the influence of unit prices: suburb, number of car spots, building area sizes, number of rooms, bedrooms, and bathrooms.
+
+The histogram of the unit prices are shown in Figure 1 after data cleaning/wrangling. It shows that prices are moderately right-skewed. Therefore, log transformation was performed as shown in Figure 2.  
+
